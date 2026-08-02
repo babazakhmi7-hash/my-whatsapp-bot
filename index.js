@@ -1,27 +1,40 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const fs = function_exists = require('fs'); // or standard fs
+const fs = require('fs');
 const path = require('path');
 
 async function startBot() {
-    // سیشن فولڈر بنائیں
     const sessionDir = './auth_info_baileys';
+    
+    if (!fs.existsSync(sessionDir)) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+    }
 
-    // اگر ریلوے کے ویری ایبل میں سیشن موجود ہے تو اسے فائل میں سیو کر لیں
+    // اگر آپ نے Railway کے Variables میں SESSION_ID ڈالا ہے تو یہ اسے خود بخود فائل بنا لے گا
     if (process.env.SESSION_ID) {
-        if (!fs.existsSync(sessionDir)) {
-            fs.mkdirSync(sessionDir, { recursive: true });
+        const sessFile = path.join(sessionDir, 'creds.json');
+        if (!fs.existsSync(sessFile)) {
+            // سیشن آئی ڈی کو یہاں سیو کیا جا رہا ہے
+            let sessData = process.env.SESSION_ID;
+            // اگر سیشن آئی ڈی کسی پریفکس کے ساتھ ہو تو اسے صاف کیا جا سکتا ہے
+            if (sessData.startsWith('Session_')) {
+                sessData = sessData.replace('Session_', '');
+            }
+            try {
+                // بیس 64 یا ڈائریکٹ جےسن کو رائٹ کرنا
+                fs.writeFileSync(sessFile, Buffer.from(sessData, 'base64').toString('utf-8'));
+            } catch (e) {
+                fs.writeFileSync(sessFile, sessData);
+            }
         }
-        // سیشن ڈیٹا کو کریڈنشیل فائل میں لکھنا
-        // (یہاں ہم مان کر چلتے ہیں کہ آپ سیشن آئی ڈی کی زیڈ آئی پی یا ٹیکسٹ ڈالیں گے)
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-
+    
     const sock = makeWASocket({
         logger: pino({ level: 'silent' }),
         auth: state,
-        printQRInTerminal: false // اب کیو آر کی ضرورت نہیں
+        printQRInTerminal: false
     });
 
     sock.ev.on('connection.update', (update) => {
@@ -33,7 +46,7 @@ async function startBot() {
                 startBot();
             }
         } else if (connection === 'open') {
-            console.log('SUCCESS! Bot connected to WhatsApp via Session ID!');
+            console.log('SUCCESS! Bot connected to WhatsApp successfully via Session ID!');
         }
     });
 
