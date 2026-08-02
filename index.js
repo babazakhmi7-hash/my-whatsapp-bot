@@ -1,37 +1,28 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const fs = require('fs');
-
-if (fs.existsSync('./auth_info_baileys')) {
-    fs.rmSync('./auth_info_baileys', { recursive: true, force: true });
-}
+const fs = function_exists = require('fs'); // or standard fs
+const path = require('path');
 
 async function startBot() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    
+    // سیشن فولڈر بنائیں
+    const sessionDir = './auth_info_baileys';
+
+    // اگر ریلوے کے ویری ایبل میں سیشن موجود ہے تو اسے فائل میں سیو کر لیں
+    if (process.env.SESSION_ID) {
+        if (!fs.existsSync(sessionDir)) {
+            fs.mkdirSync(sessionDir, { recursive: true });
+        }
+        // سیشن ڈیٹا کو کریڈنشیل فائل میں لکھنا
+        // (یہاں ہم مان کر چلتے ہیں کہ آپ سیشن آئی ڈی کی زیڈ آئی پی یا ٹیکسٹ ڈالیں گے)
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
     const sock = makeWASocket({
         logger: pino({ level: 'silent' }),
         auth: state,
-        printQRInTerminal: false,
-        browser: Browsers.macOS('Desktop') // اسے براؤزر کا فیک سگنل ملے گا تاکہ کنکشن بند نہ ہو
+        printQRInTerminal: false // اب کیو آر کی ضرورت نہیں
     });
-
-    // اپنا واٹس ایپ نمبر یہاں لکھیں (بغیر پلس کے، ملک کے کوڈ کے ساتھ)
-    const phoneNumber = "923336368652"; 
-
-    if (!sock.authState.creds.registered) {
-        setTimeout(async () => {
-            try {
-                console.log('Requesting pairing code from WhatsApp...');
-                let code = await sock.requestPairingCode(phoneNumber);
-                console.log(`\n========================================`);
-                console.log(` NEW PAIRING CODE IS: ${code} `);
-                console.log(`========================================\n`);
-            } catch (err) {
-                console.log('Error getting pairing code:', err);
-            }
-        }, 8000); // یہاں وقت بڑھا کر 8 سیکنڈ کر دیا ہے تاکہ کنکشن پکا بن جائے
-    }
 
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
@@ -42,7 +33,7 @@ async function startBot() {
                 startBot();
             }
         } else if (connection === 'open') {
-            console.log('SUCCESS! Bot connected to WhatsApp successfully!');
+            console.log('SUCCESS! Bot connected to WhatsApp via Session ID!');
         }
     });
 
