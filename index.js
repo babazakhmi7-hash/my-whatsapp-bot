@@ -1,8 +1,8 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 
+// پرانا خراب ڈیٹا صاف کرنے کے لیے
 if (fs.existsSync('./auth_info_baileys')) {
     fs.rmSync('./auth_info_baileys', { recursive: true, force: true });
 }
@@ -13,18 +13,27 @@ async function startBot() {
     const sock = makeWASocket({
         logger: pino({ level: 'silent' }),
         auth: state,
-        printQRInTerminal: true
+        printQRInTerminal: false
     });
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        if (qr) {
-            console.log('SCAN THIS QR CODE:');
-            // یہاں ہم نے اسے small: true کر دیا ہے تاکہ سکرین پر چھوٹا اور پورا آئے
-            qrcode.generate(qr, { small: true });
-        }
+    // آپ کا واٹس ایپ نمبر
+    const phoneNumber = "923336368652"; 
 
+    if (!sock.authState.creds.registered) {
+        setTimeout(async () => {
+            try {
+                let code = await sock.requestPairingCode(phoneNumber);
+                console.log(`\n========================================`);
+                console.log(` YOUR PAIRING CODE IS: ${code} `);
+                console.log(`========================================\n`);
+            } catch (err) {
+                console.log('Error getting pairing code:', err);
+            }
+        }, 5000);
+    }
+
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Connection closed, reconnecting...', shouldReconnect);
