@@ -3,10 +3,13 @@ const pino = require('pino');
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 
+// جیسے ہی بوٹ شروع ہو، پرانا کرپٹ سیشن فولڈر اڑا دو تاکہ نیا کیو آر کوڈ آئے
+if (fs.existsSync('./auth_info_baileys')) {
+    fs.rmSync('./auth_info_baileys', { recursive: true, force: true });
+    console.log('Old session deleted successfully!');
+}
+
 async function startBot() {
-    // اگر پرانا سیشن خراب ہو جائے تو اسے صاف کرنے کے لیے
-    // (پہلی بار کے لیے آپ اس لائن کو ہٹا بھی سکتے ہیں اگر ضرورت ہو)
-    
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     
     const sock = makeWASocket({
@@ -29,8 +32,6 @@ async function startBot() {
             console.log('Connection closed, reconnecting...', shouldReconnect);
             if (shouldReconnect) {
                 startBot();
-            } else {
-                console.log('Connection logged out. Please delete auth_info_baileys folder and restart.');
             }
         } else if (connection === 'open') {
             console.log('Bot connected successfully!');
