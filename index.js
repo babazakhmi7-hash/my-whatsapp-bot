@@ -1,0 +1,15 @@
+{
+  "name": "my-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.5",
+    "pino": "^8.19.0",
+    "qrcode-terminal": "^0.12.0",
+    "yt-search": "^2.10.4"
+  }
+}
