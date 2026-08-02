@@ -2,7 +2,6 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = requi
 const pino = require('pino');
 const fs = require('fs');
 
-// پرانا خراب ڈیٹا صاف کرنے کے لیے
 if (fs.existsSync('./auth_info_baileys')) {
     fs.rmSync('./auth_info_baileys', { recursive: true, force: true });
 }
@@ -16,7 +15,6 @@ async function startBot() {
         printQRInTerminal: false
     });
 
-    // آپ کا واٹس ایپ نمبر
     const phoneNumber = "923336368652"; 
 
     if (!sock.authState.creds.registered) {
