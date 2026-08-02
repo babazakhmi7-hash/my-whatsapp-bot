@@ -1,44 +1,28 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const pino = require('pino');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const fs = require('fs');
 
-// جیسے ہی بوٹ شروع ہو، پرانا کرپٹ سیشن فولڈر اڑا دو تاکہ نیا کیو آر کوڈ آئے
-if (fs.existsSync('./auth_info_baileys')) {
-    fs.rmSync('./auth_info_baileys', { recursive: true, force: true });
-    console.log('Old session deleted successfully!');
-}
+const client = new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    }
+});
 
-async function startBot() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    
-    const sock = makeWASocket({
-        logger: pino({ level: 'silent' }),
-        auth: state,
-        printQRInTerminal: true,
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
-    });
+client.on('qr', (qr) => {
+    console.log('--- SCAN THIS REAL QR CODE ---');
+    qrcode.generate(qr, { small: false }); // اس بار سائز بڑا اور بالکل صاف آئے گا
+});
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        if (qr) {
-            console.log('Scan this QR Code:');
-            qrcode.generate(qr, { small: true });
-        }
+client.on('ready', () => {
+    console.log('Client is ready and connected to WhatsApp successfully!');
+});
 
-        if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('Connection closed, reconnecting...', shouldReconnect);
-            if (shouldReconnect) {
-                startBot();
-            }
-        } else if (connection === 'open') {
-            console.log('Bot connected successfully!');
-        }
-    });
+client.on('auth_failure', (msg) => {
+    console.error('Authentication failed', msg);
+});
 
-    sock.ev.on('creds.update', saveCreds);
-}
+client.on('disconnected', (reason) => {
+    console.log('Client was logged out', reason);
+});
 
-startBot();
+client.initialize();
